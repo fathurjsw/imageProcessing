@@ -33,19 +33,51 @@ class ImageTransform  :
         edge = cv2.Canny(self.greyImage, 100,100)
         _,contours,_ = cv2.findContours(edge.copy(),1,1)
         self.contours = contours
+        maxArea = 0
+        maxPeri = 0
+        maxCountour = 0
+
+        # for i in contours:
+        #     area = cv2.contourArea(i)
+        #     pe
+        #     print('areaa', area)
+        #     if area > maxArea:
+        #         maxArea = area
+        #         maxCountour = i
+        for i in contours : 
+            peri = cv2.arcLength(i, True)
+            if peri > maxPeri:
+               maxPeri = peri
+               maxCountour = i
+
+        self.maxCountour = maxCountour
         return self
 
-    def cropImage(self):
-        maxArea = 0
-        contour = 0
+    def applyContour(self):
+        newImage = cv2.drawContours(self.image, self.contours,-1,(0,0,255), 1)
+        return newImage
 
-        for i in self.contours:
-            area = cv2.contourArea(i)
-            if area > maxArea:
-                maxArea = area
-                contour = i
+    def getRectangle(self):
+        rect= cv2.minAreaRect(self.maxCountour)
+        box = cv2.boxPoints(rect)
+        # box = np.intc(box)
+        peri=cv2.arcLength(box,True)
+        approx=cv2.approxPolyDP(box,0.02*peri,True)
+        w,h,arr = transform(approx)
+
+        pts2=np.float32([[0,0],[w,0],[0,h],[w,h]])
+        pts1=np.float32(arr)
+        M=cv2.getPerspectiveTransform(pts1,pts2)
+        newImage=cv2.warpPerspective(self.image, M,(w,h))
+        self.image = newImage
+        return self
+
+
+    def cropImage(self):
+        contour = self.maxCountour
         peri=cv2.arcLength(contour,True)
         approx=cv2.approxPolyDP(contour,0.02*peri,True)
+        print(approx)
         w,h,arr = transform(approx)
         pts2=np.float32([[0,0],[w,0],[0,h],[w,h]])
         pts1=np.float32(arr)
