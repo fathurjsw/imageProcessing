@@ -27,28 +27,29 @@ class ImageTransform  :
         self.greyImage =  cv2.GaussianBlur(greyImage, matrixSize, 0)
         return self
 
-    def edgeDetect(self):
-        self.gausianBlur((9,9))
+    def edgeDetect(self, method = 'canny'):
+        self.gausianBlur((7,7))
         self.newImage = self.image.copy()
+       
         edge = cv2.Canny(self.greyImage, 100,100)
+        if method == 'laplace' : edge = cv2.Laplacian(self.greyImage,cv2.CV_8UC1)
         _,contours,_ = cv2.findContours(edge.copy(),1,1)
         self.contours = contours
         maxArea = 0
         maxPeri = 0
         maxCountour = 0
 
-        # for i in contours:
-        #     area = cv2.contourArea(i)
-        #     pe
-        #     print('areaa', area)
-        #     if area > maxArea:
-        #         maxArea = area
-        #         maxCountour = i
-        for i in contours : 
-            peri = cv2.arcLength(i, True)
-            if peri > maxPeri:
-               maxPeri = peri
-               maxCountour = i
+        for i in contours:
+            area = cv2.contourArea(i)
+            if area > maxArea:
+                maxArea = area
+                maxCountour = i
+        # for i in contours : 
+        #     peri = cv2.arcLength(i, True)
+        #     if peri > maxPeri:
+        #        maxPeri = peri
+        #        maxCountour = i
+        
 
         self.maxCountour = maxCountour
         return self
@@ -60,7 +61,7 @@ class ImageTransform  :
     def getRectangle(self):
         rect= cv2.minAreaRect(self.maxCountour)
         box = cv2.boxPoints(rect)
-        # box = np.intc(box)
+        box = np.intc(box)
         peri=cv2.arcLength(box,True)
         approx=cv2.approxPolyDP(box,0.02*peri,True)
         w,h,arr = transform(approx)
@@ -69,7 +70,12 @@ class ImageTransform  :
         pts1=np.float32(arr)
         M=cv2.getPerspectiveTransform(pts1,pts2)
         newImage=cv2.warpPerspective(self.image, M,(w,h))
-        self.image = newImage
+        ratio = newImage.size / self.image.size
+        print(ratio)
+        if ratio > 0.2 and ratio < 1: self.image = newImage
+        h,w,_ = self.image.shape
+        print(w,h)
+        if w > h : self.rotate(90)
         return self
 
 
