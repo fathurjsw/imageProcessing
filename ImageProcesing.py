@@ -1,5 +1,6 @@
 import cv2
 import numpy as np 
+import math
 from transfrom import transform
 
 class ImageTransform  :
@@ -39,20 +40,38 @@ class ImageTransform  :
         maxPeri = 0
         maxCountour = 0
 
-        for i in contours:
-            area = cv2.contourArea(i)
-            if area > maxArea:
-                maxArea = area
-                maxCountour = i
-        # for i in contours : 
-        #     peri = cv2.arcLength(i, True)
-        #     if peri > maxPeri:
-        #        maxPeri = peri
-        #        maxCountour = i
+        # for i in contours:
+        #     area = cv2.contourArea(i)
+        #     if area > maxArea:
+        #         maxArea = area
+        #         maxCountour = i
+        for i in contours : 
+            peri = cv2.arcLength(i, True)
+            if peri > maxPeri:
+               maxPeri = peri
+               maxCountour = i
         
 
         self.maxCountour = maxCountour
         return self
+
+    def hougeLine (self):
+        self.gausianBlur((7,7))
+        newImage = self.image.copy()
+        edge = cv2.Canny(self.greyImage, 100,100)
+        lines = cv2.HoughLines(edge,1,np.pi / 180, 120, None, 0, 0)
+        if lines is not None:
+            for i in range(0, len(lines)):
+                rho = lines[i][0][0]
+                theta = lines[i][0][1]
+                a = math.cos(theta)
+                b = math.sin(theta)
+                x0 = a * rho
+                y0 = b * rho
+                pt1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
+                pt2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
+                cv2.line(newImage, pt1, pt2, (0,0,255), 3, cv2.LINE_AA)
+        cv2.imwrite('report/image9-hough.jpg',newImage)
 
     def applyContour(self):
         newImage = cv2.drawContours(self.image, self.contours,-1,(0,0,255), 1)
